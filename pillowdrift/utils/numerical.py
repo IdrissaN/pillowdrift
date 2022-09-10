@@ -1,6 +1,16 @@
 import numpy as np
 from scipy.stats import gaussian_kde
+from scipy.stats import ks_2samp
 
+
+def ksmirnovtest(values_reference, values_current, threshold=0.95):
+    _, pvalue = ks_2samp(values_reference, values_current)
+    if pvalue < 1 - threshold:
+        verdict = 'detected'
+    else:
+        verdict = 'not detected'
+
+    return verdict, round(pvalue, 5)
 
 def continuous_data(data_reference, data_current, columns, config):
     continuous = config['model']['variables']['numerical']
@@ -25,14 +35,16 @@ def numerical_distribution_sampler(numerical_elements):
         name = element[0]
         val_ref = element[1]
         val_cur = element[2]
+
+        # Compute the KS test, retrieve the p-value and the verdict
+        verdict, pvalue = ksmirnovtest(val_ref, val_cur)
+        
         # Compute the data distributions
         u = np.linspace(min(val_ref), max(val_ref), 1000)
         val_ref = estimate_density(np.array(val_ref), u)
         val_cur = estimate_density(np.array(val_cur), u)
         u = [round(element, 3) for element in u]
-        # Compute the KS test, retrieve the p-value and the verdict
-        pvalue = 0.134
-        verdict = 'not detected'
+        
         name = 'Variable: {} <br> Drift: {} <br> P-value: {}'.format(
             name, verdict, pvalue)
 
